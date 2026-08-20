@@ -157,6 +157,10 @@ Example:
 
 ## SoftRock Lite II
 
+The SoftRock Lite II has an onboard crystal LO fixed at **7.05 MHz**.
+
+![SoftRock Lite II](softrock.jpeg)
+
 | RF Input | Output |
 |-----------|----------|
 | -70 dBm | 5 mVpp |
@@ -170,6 +174,14 @@ Example:
 ---
 
 ## QRP Labs Tayloe
+
+The QRP Labs receiver was driven by an external **SI5351A** module used as LO at **7.1 MHz**, controlled via I2C from an STM32.
+
+![SI5351A as LO](si5351a.jpeg)
+
+The output transformers were **not fitted**: they are only needed when connecting to a soundcard. For this SDR project the I/Q baseband is fed directly into the STM32H7 ADC, so the transformers are unnecessary.
+
+![QRP Labs Receiver (no output transformers)](qrp_labs_rx.jpeg)
 
 | RF Input | Output |
 |-----------|----------|
