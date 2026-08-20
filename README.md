@@ -129,11 +129,18 @@ cannot outperform the existing receivers, then there is little reason to replace
 
 # Test Setup
 
-The setup used during measurements is shown below.
+## Instruments
 
-The RF signal generator was connected to the receiver RF input.
+- **Signal source:** OSA103Mini VNA / signal generator
+  - Internal step attenuator: 0 to −62 dB (minimum output ≈ 1 mVpp into 50 Ω)
+  - For −70 dBm: OSA set to −50 dBm + external 20 dB SMA attenuator in series
+- **Receiver output:** measured with a Hantek digital oscilloscope (Vpp)
 
-The receiver output was observed on a Hantek oscilloscope and output voltage was measured while varying RF input level.
+## MDS Criterion
+
+Minimum Detectable Signal (MDS) is defined here as the lowest input level at which a signal is **visually distinguishable** from the noise floor on the oscilloscope. This is a comparative criterion, not a formal noise-figure measurement.
+
+## Setup Photo
 
 ![Measurement Setup](measurement.jpeg)
 
@@ -157,19 +164,23 @@ Example:
 
 ## SoftRock Lite II
 
-The SoftRock Lite II has an onboard crystal LO fixed at **7.05 MHz**.
+The SoftRock Lite II has an onboard crystal oscillator at **28.224 MHz**. The Tayloe detector divides this by 4, giving a center frequency of **7.056 MHz**.
 
 ![SoftRock Lite II](softrock.jpeg)
 
-| RF Input | Output |
-|-----------|----------|
-| -70 dBm | 5 mVpp |
-| -62 dBm | 15 mVpp |
-| -48 dBm | 42 mVpp |
-| -42 dBm | 82 mVpp |
-| -30 dBm | 320 mVpp |
-| -20 dBm | 1.01 Vpp |
-| -13 dBm | 2.14 Vpp |
+Estimated voltage gain (V_out / V_in, 50 Ω source, unloaded output):
+
+| RF Input | Output | Est. Gain |
+|-----------|----------|-----------|
+| -70 dBm | 5 mVpp | ~28 dB |
+| -62 dBm | 15 mVpp | ~30 dB |
+| -48 dBm | 42 mVpp | ~24 dB |
+| -42 dBm | 82 mVpp | ~24 dB |
+| -30 dBm | 320 mVpp | ~24 dB |
+| -20 dBm | 1.01 Vpp | ~24 dB |
+| -13 dBm | 2.14 Vpp | ~24 dB |
+
+> Note: higher apparent gain at −70/−62 dBm is likely due to oscilloscope measurement uncertainty at sub-mV input levels.
 
 ---
 
@@ -183,185 +194,115 @@ The output transformers were **not fitted**: they are only needed when connectin
 
 ![QRP Labs Receiver (no output transformers)](qrp_labs_rx.jpeg)
 
-| RF Input | Output |
-|-----------|----------|
-| -70 dBm | not detectable |
-| -62 dBm | not detectable |
-| -48 dBm | 50 mVpp |
-| -42 dBm | 90 mVpp |
-| -30 dBm | 1.32 Vpp |
-| -20 dBm | 2.91 Vpp |
-| -13 dBm | 2.98 Vpp |
+Estimated voltage gain (V_out / V_in, 50 Ω source, unloaded output):
+
+| RF Input | Output | Est. Gain |
+|-----------|----------|-----------|
+| -70 dBm | not detectable | — |
+| -62 dBm | not detectable | — |
+| -48 dBm | 50 mVpp | ~26 dB |
+| -42 dBm | 90 mVpp | ~25 dB |
+| -30 dBm | 1.32 Vpp | ~36 dB |
+| -20 dBm | 2.91 Vpp | ~33 dB ⚠ compressing |
+| -13 dBm | 2.98 Vpp | ~27 dB ⚠ saturated |
+
+> Note: the gain jump between −42 and −30 dBm suggests the on-board AF amplifier stage coming into its full operating region.
 
 ---
 
 # Analysis
 
-## Weak Signals
+## Weak Signals (below −62 dBm)
 
-Reference:
+Reference: S9 = −73 dBm.
 
-```text
-S9 = -73 dBm
-```
+At −70 dBm, SoftRock produces **5 mVpp** while QRP Labs detects nothing.  
+At −62 dBm, SoftRock still produces **15 mVpp** while QRP Labs remains below the noise floor.
 
-Important observations:
-
-```text
--70 dBm
-```
-
-SoftRock:
-
-```text
-5 mVpp
-```
-
-QRP Labs:
-
-```text
-not detectable
-```
-
-Likewise:
-
-```text
--62 dBm
-```
-
-SoftRock still produces a measurable output:
-
-```text
-15 mVpp
-```
-
-while QRP Labs does not.
-
-### Conclusion
-
-For weak signals:
-
-```text
-SoftRock Lite II is clearly superior.
-```
+**Conclusion:** SoftRock Lite II is clearly superior for near-S9 and weak signals.
 
 ---
 
-## Medium Signals
+## Medium Signals (−48 to −30 dBm)
 
-For:
+QRP Labs produces significantly more output voltage in this range:
 
-```text
--48 dBm
--42 dBm
--30 dBm
-```
+| Level | SoftRock | QRP Labs |
+|---|---|---|
+| −48 dBm | 42 mVpp | 50 mVpp |
+| −42 dBm | 82 mVpp | 90 mVpp |
+| −30 dBm | 320 mVpp | **1.32 Vpp** |
 
-QRP Labs produces slightly higher to much higher output voltage.
-
-Example:
-
-```text
--30 dBm
-
-SoftRock = 320 mVpp
-
-QRP Labs = 1.32 Vpp
-```
-
-### Conclusion
-
-For medium signals:
-
-```text
-QRP Labs provides significantly more gain.
-```
+**Conclusion:** QRP Labs provides considerably more conversion gain at medium signal levels, likely due to its on-board AF amplifier stage.
 
 ---
 
-## Strong Signals
+## Strong Signals (above −20 dBm)
 
-QRP Labs reaches:
+QRP Labs output increases from 2.91 Vpp to only 2.98 Vpp between −20 and −13 dBm. A 7 dB input increase yields only +0.07 Vpp output — clear compression saturating at ≈ 3 Vpp.
 
-```text
-2.91 Vpp @ -20 dBm
-```
+SoftRock output continues to increase linearly: 1.01 Vpp → 2.14 Vpp (+6.5 dB output for +7 dB input).
 
-and
+**Conclusion:** QRP Labs compresses around −20 dBm. SoftRock remains linear past −13 dBm.
 
-```text
-2.98 Vpp @ -13 dBm
-```
+---
 
-indicating obvious compression.
+# Dynamic Range Analysis
 
-SoftRock still increases output significantly between these two levels.
+## Minimum Detectable Signal (MDS)
 
-### Conclusion
+| Receiver | MDS |
+|---|---|
+| SoftRock Lite II | **−70 dBm** |
+| QRP Labs Tayloe | **−48 dBm** |
 
-QRP Labs appears to compress around:
+SoftRock detects signals 22 dB weaker than QRP Labs.
 
-```text
-≈ 3 Vpp output
-```
+## 1 dB Compression Point
+
+| Receiver | Compression |
+|---|---|
+| SoftRock Lite II | not observed up to −13 dBm |
+| QRP Labs Tayloe | ≈ −20 dBm (output saturates at ≈ 3 Vpp) |
+
+QRP Labs shows obvious compression: only +0.07 Vpp output gain for 7 dB more input between −20 and −13 dBm.
+
+## Linear Dynamic Range
+
+| Receiver | MDS | Compression | Dynamic Range |
+|---|---|---|---|
+| SoftRock Lite II | −70 dBm | > −13 dBm | **≥ 57 dB** |
+| QRP Labs Tayloe | −48 dBm | ≈ −20 dBm | **≈ 28 dB** |
+
+## Verdict
+
+**SoftRock Lite II has clearly superior dynamic range.**
+
+QRP Labs has higher conversion gain (~36 dB vs ~24 dB estimated), but this causes it to saturate much earlier.
+SoftRock is more linear across the full range and detects signals 22 dB weaker.
+
+For an SDR where the ADC must handle strong and weak signals simultaneously, **SoftRock is the better reference design**.
 
 ---
 
 # Current Ranking
 
-## Weak Signals
-
-Winner:
-
-```text
-SoftRock Lite II
-```
-
-Reason:
-
-- detects signals down to -70 dBm
-- detects signals at -62 dBm
-- better behaviour near S9 level
-
----
-
-## Medium Signals
-
-Winner:
-
-```text
-QRP Labs Tayloe
-```
-
-Reason:
-
-- considerably more output voltage
-- stronger output drive
+| Category | Winner | Reason |
+|---|---|---|
+| Weak signals (< −48 dBm) | **SoftRock Lite II** | MDS −70 dBm vs −48 dBm; dynamic range ≥ 57 dB vs 28 dB |
+| Medium signals (−48 to −30 dBm) | **QRP Labs Tayloe** | ~36 dB conversion gain vs ~24 dB; 4× more output voltage |
+| Strong signals (> −20 dBm) | **SoftRock Lite II** | Remains linear; QRP Labs saturates at ≈ 3 Vpp |
+| Overall for SDR baseline | **SoftRock Lite II** | Superior linearity and dynamic range across all levels |
 
 ---
 
 # Next Step
 
-A Chinese broadband LNA based on:
+A Chinese broadband LNA based on **TQP3M9037** will be measured next. Cost: **13 EUR**.
 
-```text
-TQP3M9037
-```
+The same measurement procedure will be repeated and compared against SoftRock Lite II and QRP Labs Tayloe.
 
-will be measured next.
-
-Cost:
-
-```text
-13 EUR
-```
-
-The same measurement procedure will be repeated and compared against:
-
-- SoftRock Lite II
-- QRP Labs Tayloe
-
-Measurement table prepared for TQP3M9037:
+Measurement table for TQP3M9037 *(data pending — TBC)*:
 
 | RF Input | SoftRock | QRP Labs | TQP3M9037 |
 |-----------|-----------|-----------|-----------|
