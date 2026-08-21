@@ -302,21 +302,21 @@ Cost: **13 EUR**. Module: **TQP3M9037-LNA-V2 100K–6G** (Chinese broadband LNA 
 
 ## Physical Condition on Arrival
 
-![TQP3M9037 connected to OSA103Mini](TQP3M9037_1.jpeg)
-
-![TQP3M9037 board close-up](TQP3M9037_2.jpeg)
-
 The module arrived in poor physical condition:
 
 - SMA nuts were loose inside the bag — not fitted on the connectors
 - SMA connectors were heavily oxidised
 - PCB covered in flux residue and unmelted solder paste balls
 
+![TQP3M9037 board close-up](TQP3M9037_2.jpeg)
+
 After disassembly, cleaning the PCB, and polishing the SMA connectors with a cotton swab, the module was reconnected and tested. Despite low expectations, performance was surprisingly good.
 
 > **Note:** The board silkscreen reads **100K–6G**, meaning the PCB design claims operation down to 100 kHz — well below the TQP3M9037 chip's datasheet start frequency of 400 MHz. Bias network and matching components on the V2 board extend HF coverage significantly.
 
 ## Measurement Setup
+
+![TQP3M9037 connected to OSA103Mini](TQP3M9037_1.jpeg)
 
 - **Signal source / output power meter:** OSA103Mini (used as two-port: TX → LNA input, LNA output → RX port)
 - **Frequency range tested:** 1 MHz – 10 MHz (HF, outside datasheet spec of the MMIC itself)
