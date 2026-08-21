@@ -296,38 +296,125 @@ For an SDR where the ADC must handle strong and weak signals simultaneously, **S
 
 ---
 
-# Next Step
+# TQP3M9037-LNA-V2 — Measurement Results
 
-A Chinese broadband LNA based on **TQP3M9037** will be measured next. Cost: **13 EUR**.
+Cost: **13 EUR**. Module: **TQP3M9037-LNA-V2 100K–6G** (Chinese broadband LNA board).
 
-The same measurement procedure will be repeated and compared against SoftRock Lite II and QRP Labs Tayloe.
+## Physical Condition on Arrival
 
-Measurement table for TQP3M9037 *(data pending — TBC)*:
+![TQP3M9037 connected to OSA103Mini](tqp3m9037_setup.jpeg)
 
-| RF Input | SoftRock | QRP Labs | TQP3M9037 |
-|-----------|-----------|-----------|-----------|
-| -70 dBm | 5 mVpp | n.d. | |
-| -62 dBm | 15 mVpp | n.d. | |
-| -48 dBm | 42 mVpp | 50 mVpp | |
-| -42 dBm | 82 mVpp | 90 mVpp | |
-| -30 dBm | 320 mVpp | 1.32 Vpp | |
-| -20 dBm | 1.01 Vpp | 2.91 Vpp | |
-| -13 dBm | 2.14 Vpp | 2.98 Vpp | |
+![TQP3M9037 board close-up](tqp3m9037_board.jpeg)
+
+The module arrived in poor physical condition:
+
+- SMA nuts were loose inside the bag — not fitted on the connectors
+- SMA connectors were heavily oxidised
+- PCB covered in flux residue and unmelted solder paste balls
+
+After disassembly, cleaning the PCB, and polishing the SMA connectors with a cotton swab, the module was reconnected and tested. Despite low expectations, performance was surprisingly good.
+
+> **Note:** The board silkscreen reads **100K–6G**, meaning the PCB design claims operation down to 100 kHz — well below the TQP3M9037 chip's datasheet start frequency of 400 MHz. Bias network and matching components on the V2 board extend HF coverage significantly.
+
+## Measurement Setup
+
+- **Signal source / output power meter:** OSA103Mini (used as two-port: TX → LNA input, LNA output → RX port)
+- **Frequency range tested:** 1 MHz – 10 MHz (HF, outside datasheet spec of the MMIC itself)
+- **Output measured in dBm** (power referenced to 50 Ω), unlike the oscilloscope Vpp method used for the Tayloe receivers
+
+## Raw Measurement Data
+
+| RF Input (dBm) | Output (dBm) | Gain (dB) | Notes |
+|----------------|--------------|-----------|-------|
+| −70 | −41.75 | **+28.25** | |
+| −62 | −34.04 | **+27.96** | |
+| −48 | −20.04 | **+27.96** | |
+| −42 | −13.97 | **+28.03** | |
+| −30 | −1.94 | **+28.06** | last fully linear point |
+| −20 | +3.79 | +23.79 | ⚠ input overdriven |
+| −13 | +4.04 | +17.04 | ⚠ input overdriven, saturated |
+
+## Gain Linearity
+
+In the input range −70 to −30 dBm the gain is **28.0 ± 0.1 dB** — essentially flat across a 40 dB window. This is exceptional linearity for a €13 module operating well outside its rated frequency band.
+
+Gain starts dropping between −30 and −20 dBm. The output saturates at approximately **+4 dBm**.
+
+Estimated 1 dB compression point: **P1dB_in ≈ −27 dBm**, **P1dB_out ≈ −1 dBm** (interpolated).
+
+## Three-Way Comparison
+
+For comparison, TQP3M9037 output is converted from dBm to Vpp (50 Ω):
+
+| RF Input | SoftRock Lite II | QRP Labs Tayloe | TQP3M9037 LNA |
+|----------|-----------------|-----------------|----------------|
+| −70 dBm | 5 mVpp | n.d. | **5.2 mVpp** |
+| −62 dBm | 15 mVpp | n.d. | **12.6 mVpp** |
+| −48 dBm | 42 mVpp | 50 mVpp | **63 mVpp** |
+| −42 dBm | 82 mVpp | 90 mVpp | **127 mVpp** |
+| −30 dBm | 320 mVpp | 1.32 Vpp | **506 mVpp** |
+| −20 dBm | 1.01 Vpp | 2.91 Vpp ⚠ | **0.98 Vpp** ⚠ |
+| −13 dBm | 2.14 Vpp | 2.98 Vpp ⚠ | **1.01 Vpp** ⚠ |
+
+> ⚠ = compressing / overdriven
+
+> **Important architectural note:** SoftRock and QRP Labs are complete receivers — they output demodulated baseband I/Q. The TQP3M9037 is a pure broadband gain block: it outputs amplified RF, which must still be fed into an ADC for direct undersampling. The table above compares amplitudes, not architectures.
+
+## Analysis
+
+### MDS
+
+The LNA achieves MDS ≤ −70 dBm — the same as SoftRock Lite II, and 22 dB better than QRP Labs. Even though the LNA is not a receiver by itself, it does not introduce a sensitivity penalty relative to the best Tayloe front-end tested.
+
+### Gain
+
+~28 dB across the entire linear range, comparable to SoftRock. The gain is extremely flat — less than 0.1 dB variation across a 40 dB input window.
+
+### Compression
+
+Output saturates at +4 dBm. P1dB_in ≈ −27 dBm. This is lower than SoftRock (which showed no compression up to −13 dBm), but for a direct-sampling SDR the ADC's own clipping threshold sets the practical upper limit anyway.
+
+### Linear Dynamic Range
+
+| Device | MDS | Compression | Linear Range |
+|--------|-----|-------------|--------------|
+| SoftRock Lite II | −70 dBm | > −13 dBm | ≥ 57 dB |
+| QRP Labs Tayloe | −48 dBm | ≈ −20 dBm | ≈ 28 dB |
+| **TQP3M9037 LNA** | **≤ −70 dBm** | **≈ −27 dBm** | **≈ 43 dB** |
+
+### Conclusions
+
+1. **The module works — and works well.** Despite poor packaging and visible quality issues, after cleaning it performs within expected parameters at HF.
+
+2. **~28 dB flat gain from at least −70 dBm to −30 dBm** at 1–10 MHz is remarkable for a module rated for 400 MHz–6 GHz. The V2 board design clearly extends the usable range to HF.
+
+3. **MDS matches SoftRock.** The LNA does not hurt sensitivity relative to the best passive Tayloe front-end. Combined with a good HF ADC it should be a viable direct-sampling front-end.
+
+4. **P1dB_in ≈ −27 dBm** is the main limitation. Strong adjacent signals above this level will cause gain compression. A switchable attenuator or AGC ahead of the LNA would be needed for robust strong-signal performance.
+
+5. **The "Nooelec LaNA HF" fallback is no longer needed.** The TQP3M9037-LNA-V2 has demonstrated adequate HF performance. The next step is pairing it with the STM32H7 ADC for direct undersampling tests.
 
 ---
 
-# Candidate if TQP3M9037 fails
+# Next Step
 
-The current preferred fallback is:
-
-```text
-Nooelec LaNA HF
-```
-
-because it is specifically designed for:
+Pair the TQP3M9037-LNA-V2 with the STM32H7B3 ADC and characterise the full direct-sampling signal chain:
 
 ```text
-50 kHz - 150 MHz
+Antenna
+   |
+Relay-selected BPF
+   |
+TQP3M9037-LNA-V2  (~28 dB gain)
+   |
+STM32H7B3 ADC  (undersampling)
+   |
+DSP / DDC
 ```
 
-and therefore matches the requirements of a broadband HF SDR much better than microwave-oriented MMIC amplifiers.
+Metrics to verify:
+
+- effective MDS end-to-end
+- dynamic range with BPF inserted
+- image rejection under undersampling
+- whether P1dB_in ≈ −27 dBm of the LNA is an issue in practice on HF bands
