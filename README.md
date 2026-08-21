@@ -302,9 +302,9 @@ Cost: **13 EUR**. Module: **TQP3M9037-LNA-V2 100K–6G** (Chinese broadband LNA 
 
 ## Physical Condition on Arrival
 
-![TQP3M9037 connected to OSA103Mini](tqp3m9037_setup.jpeg)
+![TQP3M9037 connected to OSA103Mini](TQP3M9037_1.jpeg)
 
-![TQP3M9037 board close-up](tqp3m9037_board.jpeg)
+![TQP3M9037 board close-up](TQP3M9037_2.jpeg)
 
 The module arrived in poor physical condition:
 
