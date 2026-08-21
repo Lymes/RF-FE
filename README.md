@@ -416,7 +416,7 @@ To interface the TQP3M9037 LNA output (50 Ω, RF, DC-coupled) with the STM32H7B3
 
 ## Schematic
 
-![ADC adapter schematic](adc_adapter.png)
+![ADC adapter schematic](adc_adapter_sch.png)
 
 **Components:**
 
