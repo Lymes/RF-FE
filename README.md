@@ -425,8 +425,8 @@ To interface the TQP3M9037 LNA output (50 Ω, RF, DC-coupled) with the STM32H7B3
 | R1 | 50 Ω | 50 Ω termination for LNA output (source side of C1) |
 | C1 | 100 nF | DC block — separates LNA DC from ADC bias |
 | R3 | 10 kΩ | Top half of VCC/2 voltage divider |
-| R2 | 10 kΩ | Bottom half of VCC/2 voltage divider |
-| R5 | 10 kΩ | Additional shunt to GND on bias node |
+| R2 | 10 kΩ | DC bias feed — connects Node A (ADC side of C1) to the bias node |
+| R5 | 10 kΩ | Bottom half of VCC/2 voltage divider |
 | C2 | 10 µF | Bypass capacitor — makes bias node solid AC ground |
 | R4 | 100 Ω | ADC driver resistor — isolates ADC sample-hold cap |
 
