@@ -334,6 +334,22 @@ After disassembly, cleaning the PCB, and polishing the SMA connectors with a cot
 | −20 | +3.79 | +23.79 | ⚠ OSA103Mini RX port overdriven |
 | −13 | +4.04 | +17.04 | ⚠ OSA103Mini RX port overdriven |
 
+## OSA103Mini Screenshots
+
+**−70 dBm input → −41.75 dBm output (+28.25 dB), 1–10 MHz sweep:**
+
+![LNA S21 at -70 dBm input](LNA_70db.png)
+
+**−62 dBm input → −34.02 dBm output (+27.96 dB), 1–10 MHz sweep:**
+
+![LNA S21 at -62 dBm input](LNA_62db.png)
+
+**−13 dBm input — OSA103Mini RX port overdriven ("Input is overdriven" warning):**
+
+![LNA S21 at -13 dBm input — OSA103 overdriven](LNA_13db.png)
+
+All three sweeps show the S21 response across 1 kHz–10 MHz. The flat pass-band from ~3 MHz to 10 MHz and the roll-off at low frequencies are clearly visible. The third screenshot shows the OSA103Mini's own warning — the LNA output exceeded the VNA receiver's input range; the LNA itself was not clipping.
+
 ## Gain Linearity
 
 In the input range −70 to −30 dBm the gain is **28.0 ± 0.1 dB** — essentially flat across a 40 dB window. This is exceptional linearity for a €13 module operating well outside its rated frequency band.
