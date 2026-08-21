@@ -410,6 +410,48 @@ The gain drop observed at −20 and −13 dBm was **not LNA compression** — it
 
 ---
 
+# ADC Adapter Circuit
+
+To interface the TQP3M9037 LNA output (50 Ω, RF, DC-coupled) with the STM32H7B3 ADC (single-supply, capacitive input), a small adapter circuit is needed.
+
+## Schematic
+
+![ADC adapter schematic](adc_adapter.png)
+
+**Components:**
+
+| Ref | Value | Function |
+|-----|-------|----------|
+| R1 | 50 Ω | 50 Ω termination for LNA output (source side of C1) |
+| C1 | 100 nF | DC block — separates LNA DC from ADC bias |
+| R3 | 10 kΩ | Top half of VCC/2 voltage divider |
+| R2 | 10 kΩ | Bottom half of VCC/2 voltage divider |
+| R5 | 10 kΩ | Additional shunt to GND on bias node |
+| C2 | 10 µF | Bypass capacitor — makes bias node solid AC ground |
+| R4 | 100 Ω | ADC driver resistor — isolates ADC sample-hold cap |
+
+## Design Notes
+
+- **R1 (50 Ω) is placed before C1** — on the LNA side. This keeps the 50 Ω termination in the RF domain without disturbing the DC bias.
+- **Bias = VCC/2 = 1.65 V** — centres the signal in the middle of the STM32H7 ADC input range (0…VDDA = 3.3 V).
+- **C2 (10 µF)** makes the bias node an AC virtual ground at all HF frequencies (Xc ≈ 0.002 Ω at 7 MHz).
+- **R4 (100 Ω)** damps the ADC sample-hold transients and prevents RF oscillation at the ADC pin.
+- **VCC must equal VDDA (3.3 V)** — the divider midpoint must match the ADC's reference rail.
+
+## LTSpice Verification
+
+Simulated with V2 = SINE(0 0.1 7.1Meg) representing LNA output, V1 = 3.3 V:
+
+![LTSpice simulation result](adc_adapter_sim.png)
+
+- **V(n001) (green/blue flat line) = 1.645 V** — DC bias at ADC input = VCC/2 ✅
+- **V(adc_in) (green waveform) = 1.54 V … 1.76 V** — signal riding symmetrically on bias ✅
+- No clipping, no distortion at 7.1 MHz ✅
+
+> Note: V2 is an ideal 0 Ω source in simulation. With a real 50 Ω LNA output impedance, R1 forms a voltage divider and signal amplitude halves (−6 dB). This is correct and expected for a matched 50 Ω termination. Net gain after termination loss: ~22 dB (28 dB LNA − 6 dB).
+
+---
+
 # Next Step
 
 Pair the TQP3M9037-LNA-V2 with the STM32H7B3 ADC and characterise the full direct-sampling signal chain:

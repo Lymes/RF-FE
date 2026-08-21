@@ -1,0 +1,9 @@
+# LTSpice simulation outputs (keep .asc schematics, ignore generated files)
+*.log
+*.net
+*.raw
+*.op.raw
+*.bak
+
+# macOS
+.DS_Store
