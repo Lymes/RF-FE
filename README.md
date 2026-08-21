@@ -330,17 +330,15 @@ After disassembly, cleaning the PCB, and polishing the SMA connectors with a cot
 | −62 | −34.04 | **+27.96** | |
 | −48 | −20.04 | **+27.96** | |
 | −42 | −13.97 | **+28.03** | |
-| −30 | −1.94 | **+28.06** | last fully linear point |
-| −20 | +3.79 | +23.79 | ⚠ input overdriven |
-| −13 | +4.04 | +17.04 | ⚠ input overdriven, saturated |
+| −30 | −1.94 | **+28.06** | last reliably measured point |
+| −20 | +3.79 | +23.79 | ⚠ OSA103Mini RX port overdriven |
+| −13 | +4.04 | +17.04 | ⚠ OSA103Mini RX port overdriven |
 
 ## Gain Linearity
 
 In the input range −70 to −30 dBm the gain is **28.0 ± 0.1 dB** — essentially flat across a 40 dB window. This is exceptional linearity for a €13 module operating well outside its rated frequency band.
 
-Gain starts dropping between −30 and −20 dBm. The output saturates at approximately **+4 dBm**.
-
-Estimated 1 dB compression point: **P1dB_in ≈ −27 dBm**, **P1dB_out ≈ −1 dBm** (interpolated).
+The apparent gain drop at −20 and −13 dBm was caused by the **OSA103Mini RX port being overdriven**, not by LNA compression. The LNA itself remained linear; the measurement instrument was the bottleneck. True P1dB of the LNA could not be determined with this setup.
 
 ## Three-Way Comparison
 
@@ -356,7 +354,7 @@ For comparison, TQP3M9037 output is converted from dBm to Vpp (50 Ω):
 | −20 dBm | 1.01 Vpp | 2.91 Vpp ⚠ | **0.98 Vpp** ⚠ |
 | −13 dBm | 2.14 Vpp | 2.98 Vpp ⚠ | **1.01 Vpp** ⚠ |
 
-> ⚠ = compressing / overdriven
+> ⚠ = for TQP3M9037 rows: OSA103Mini RX port overdriven — LNA was not the limiting element
 
 > **Important architectural note:** SoftRock and QRP Labs are complete receivers — they output demodulated baseband I/Q. The TQP3M9037 is a pure broadband gain block: it outputs amplified RF, which must still be fed into an ADC for direct undersampling. The table above compares amplitudes, not architectures.
 
@@ -372,7 +370,7 @@ The LNA achieves MDS ≤ −70 dBm — the same as SoftRock Lite II, and 22 dB b
 
 ### Compression
 
-Output saturates at +4 dBm. P1dB_in ≈ −27 dBm. This is lower than SoftRock (which showed no compression up to −13 dBm), but for a direct-sampling SDR the ADC's own clipping threshold sets the practical upper limit anyway.
+The gain drop observed at −20 and −13 dBm was **not LNA compression** — it was the OSA103Mini RX port reaching its own input limit. The LNA output at those levels (+3.79 / +4.04 dBm) exceeded what the VNA's receiver could handle. The LNA itself remained linear throughout the test. True P1dB of the TQP3M9037 is not determined from this dataset; a higher-range power meter or spectrum analyser would be needed.
 
 ### Linear Dynamic Range
 
@@ -380,7 +378,7 @@ Output saturates at +4 dBm. P1dB_in ≈ −27 dBm. This is lower than SoftRock (
 |--------|-----|-------------|--------------|
 | SoftRock Lite II | −70 dBm | > −13 dBm | ≥ 57 dB |
 | QRP Labs Tayloe | −48 dBm | ≈ −20 dBm | ≈ 28 dB |
-| **TQP3M9037 LNA** | **≤ −70 dBm** | **≈ −27 dBm** | **≈ 43 dB** |
+| **TQP3M9037 LNA** | **≤ −70 dBm** | **> −13 dBm** (OSA103 limited) | **≥ 57 dB** (instrument limited) |
 
 ### Conclusions
 
@@ -390,7 +388,7 @@ Output saturates at +4 dBm. P1dB_in ≈ −27 dBm. This is lower than SoftRock (
 
 3. **MDS matches SoftRock.** The LNA does not hurt sensitivity relative to the best passive Tayloe front-end. Combined with a good HF ADC it should be a viable direct-sampling front-end.
 
-4. **P1dB_in ≈ −27 dBm** is the main limitation. Strong adjacent signals above this level will cause gain compression. A switchable attenuator or AGC ahead of the LNA would be needed for robust strong-signal performance.
+4. **LNA compression was NOT observed.** The gain drop at −20 and −13 dBm was the OSA103Mini RX port hitting its own input limit (+4 dBm output from the LNA exceeded the VNA receiver's range). The LNA was perfectly fine. True P1dB measurement requires a dedicated power meter or spectrum analyser.
 
 5. **The "Nooelec LaNA HF" fallback is no longer needed.** The TQP3M9037-LNA-V2 has demonstrated adequate HF performance. The next step is pairing it with the STM32H7 ADC for direct undersampling tests.
 
