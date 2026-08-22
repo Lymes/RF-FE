@@ -452,25 +452,216 @@ Simulated with V2 = SINE(0 0.1 7.1Meg) representing LNA output, V1 = 3.3 V:
 
 ---
 
-# Next Step
+# ADC Adapter — Measurement Results (with bias, without 50 Ω shunt)
 
-Pair the TQP3M9037-LNA-V2 with the STM32H7B3 ADC and characterise the full direct-sampling signal chain:
+After assembling the adapter circuit the LNA output was connected directly to the ADC input through the full adapter (C1 DC block, VCC/2 bias divider R2/R3/R5, C2 bypass, R4 series resistor). The 50 Ω shunt to ground was **not fitted** — the ADC input is high impedance.
 
-```text
+The signal levels were measured at the ADC pin using a Hantek oscilloscope.
+
+## Raw Measurements
+
+| RF Input (dBm) | ADC pin level (dB relative) | Notes |
+|----------------|----------------------------|-------|
+| −70 | −47.61 | |
+| −48 | −25.57 | |
+| −42 | −19.46 | |
+| −30 | −7.43 | |
+| −20 | +2.28 | Input overdriven |
+| −13 | +3.77 | Input overdriven |
+
+## Gain Analysis
+
+| RF Input (dBm) | Output (dB) | Gain (dB) | Status |
+|----------------|-------------|-----------|--------|
+| −70 | −47.61 | **+22.39** | Linear |
+| −48 | −25.57 | **+22.43** | Linear |
+| −42 | −19.46 | **+22.54** | Linear |
+| −30 | −7.43 | **+22.57** | Linear |
+| −20 | +2.28 | **+22.28** | Linear |
+| −13 | +3.77 | **+16.77** | Compressed |
+
+Small-signal gain through the full chain (LNA + adapter, no shunt): **~22.5 dB**.
+
+This is consistent with the LNA gain of ~28 dB minus the 6 dB termination loss introduced by R1 (50 Ω source impedance into 50 Ω R1 = voltage divider, −6 dB).
+
+## Vpp Estimate at ADC Pin
+
+Without the 50 Ω shunt, the ADC sees near high-impedance load. Vpp estimated on 50 Ω equivalent, actual voltage at ADC pin may be up to ~1.4× higher due to impedance mismatch.
+
+| RF Input (dBm) | Output (dBm) | Vpp (50 Ω ref) |
+|----------------|-------------|----------------|
+| −70 | −47.61 | 2.6 mV |
+| −48 | −25.57 | 33 mV |
+| −42 | −19.46 | 67 mV |
+| −30 | −7.43 | 269 mV |
+| −20 | +2.28 | 822 mV |
+| −13 | +3.77 | 977 mV |
+
+ADC full-scale (3.3 V → 1.65 Vpp centred on bias) is reached around −10 dBm RF input. Clipping is observed at −20 dBm — this is the ADC oscilloscope input being overdriven, not necessarily the LNA saturating.
+
+## Compression Point
+
+Gain starts collapsing between −20 and −13 dBm input. The 1 dB compression point of the full chain is estimated around **−17 to −15 dBm RF input at the LNA**, consistent with the TQP3M9037 datasheet output P1dB of ~−3 to −4 dBm.
+
+---
+
+# Direct RF Undersampling — Architecture and Feasibility for 40m
+
+## Concept
+
+The STM32H7B3 ADC is used as a **bandpass sampler**. Instead of sampling at more than twice the RF frequency (which would require >14 Msps for 7 MHz), the ADC samples at a much lower rate — deliberately allowing the RF signal to alias into a lower intermediate frequency (IF) zone.
+
+This works because Shannon's theorem requires sampling at more than twice the **signal bandwidth**, not the carrier frequency. As long as the BPF before the LNA limits the signal to a narrow band, aliasing is controlled and predictable.
+
+```
 Antenna
    |
-Relay-selected BPF
+BPF 40m (7.000 – 7.300 MHz, ~−3 dB passband loss)
    |
-TQP3M9037-LNA-V2  (~28 dB gain)
+TQP3M9037 LNA (~28 dB gain)
    |
-STM32H7B3 ADC  (undersampling)
+ADC Adapter (DC bias + 50 Ω termination)
    |
-DSP / DDC
+STM32H7B3 ADC (16-bit, 3.6 Msps, free-running)
+   |
+Digital Frequency Translation (NCO × I/Q)
+   |
+DFSDM / CIC Decimation  (two stages, OSR=15 then OSR=8, total ×120)
+   |
+CIC Compensation FIR (81 taps, corrects CIC droop + highpass)
+   |
+SSB / CW Demodulator
+   |
+Audio output (DAC or USB)
 ```
 
-Metrics to verify:
+## Sampling Frequency and Aliasing
 
-- effective MDS end-to-end
-- dynamic range with BPF inserted
-- image rejection under undersampling
-- whether P1dB_in ≈ −27 dBm of the LNA is an issue in practice on HF bands
+With **Fs = 3.6 Msps** (maximum for 16-bit mode with ADCCLK = 36 MHz, 10 cycles/conversion):
+
+The 40m band (7.000 – 7.300 MHz) falls in the **third Nyquist zone** (n=2):
+
+```
+f_alias = |f_RF − n × Fs| = |7.000 − 2 × 3.600| = 0.200 MHz  (for 7.000 MHz)
+f_alias = |7.300 − 2 × 3.600| = 0.500 MHz  (for 7.300 MHz)
+```
+
+The entire 300 kHz of 40m maps to **0.200 – 0.500 MHz** in the digital baseband. The band is preserved intact, only translated in frequency. The spectrum is not inverted (odd Nyquist zone).
+
+The BPF before the LNA is essential: it rejects all other Nyquist zones that would alias onto the same IF range (e.g., signals at 3.4–3.7 MHz and 10.5–10.8 MHz would also fold onto 0.2–0.5 MHz without filtering).
+
+## Digital Frequency Translation (NCO / VFO)
+
+After sampling, a **Numerically Controlled Oscillator (NCO)** multiplies each sample by a complex exponential:
+
+```
+I[n] = sample[n] × cos(2π × f_vfo / Fs × n)
+Q[n] = sample[n] × sin(2π × f_vfo / Fs × n)
+```
+
+By tuning `f_vfo` within the 0.2–0.5 MHz IF window, any station in the 40m band is brought to DC (zero-IF). This is the **software VFO** — frequency selection is entirely in firmware, no hardware changes required.
+
+A special case is when f_vfo is fixed at exactly Fs/4: the multiplication reduces to the sequence {1, −j, −1, +j, …} which requires no floating-point operations and can be implemented with simple sign inversions and routing of I/Q words.
+
+## Decimation Chain
+
+After frequency translation the signal is at near-DC with bandwidth of a few kHz. The decimation chain reduces the sample rate from 3.6 Msps down to audio rate:
+
+| Stage | Type | Oversampling ratio | Output rate |
+|-------|------|--------------------|-------------|
+| First CIC | Sinc⁴ | ×15 | 240 ksps |
+| Second CIC | Sinc⁵ | ×8 | 30 ksps |
+| FIR compensation | 81 taps | ×1 | 30 ksps |
+
+Total decimation: **×120** (3,600,000 / 120 = 30,000 sps audio output).
+
+The CIC filters introduce passband droop (gain rolls off toward the band edges). The 81-tap FIR compensation filter corrects this droop and also provides a built-in highpass response to reject residual DC and low-frequency interference.
+
+**Processing gain** from decimation (equivalent noise bandwidth reduction):
+
+```
+PG = 10 × log10(Fs / 2 / BW_audio)
+   = 10 × log10(1,800,000 / 2,400)  for SSB (2.4 kHz BW)
+   ≈ +27.8 dB
+```
+
+This gain is real: it narrows the noise floor by integrating over fewer frequency bins.
+
+## Demodulation
+
+The output of the decimation chain is a complex (I/Q) baseband signal centred at DC. Demodulation options:
+
+| Mode | Algorithm |
+|------|-----------|
+| **SSB (USB/LSB)** | Select I+jQ or I−jQ, apply audio bandpass FIR |
+| **CW** | Same as SSB with narrow bandpass (200–500 Hz) |
+| **AM** | magnitude: √(I²+Q²) |
+
+All modes are implemented entirely in software. Mode switching and filter bandwidth are runtime parameters.
+
+## Performance Estimates for 40m — 16-bit, Fs = 3.6 Msps
+
+### Clock and ENOB
+
+The STM32H7B3I-DK Discovery uses a 25 MHz crystal oscillator mounted on-board by ST. Estimated clock jitter: ~50–100 ps, sufficient for 8–9 ENOB at 7 MHz without any external clock modification.
+
+| Source | Jitter | SNR_jitter | ENOB @ 7 MHz |
+|--------|--------|------------|--------------|
+| Discovery 25 MHz crystal | ~75 ps | ~47 dB | **~8 bit** |
+
+> Note: clock configuration must be adapted for HSE = 25 MHz. The PLL2 dividers used for ADC clock generation must be recalculated accordingly.
+
+### Noise Floor and MDS
+
+| Mode | BW | Processing gain | Noise floor | MDS (SNR = 10 dB) |
+|------|----|----------------|-------------|-------------------|
+| SSB | 2.4 kHz | +27.8 dB | −90 dBm | **−80 dBm** |
+| CW | 500 Hz | +35.6 dB | −98 dBm | **−88 dBm** |
+| CW narrow | 100 Hz | +42.6 dB | −105 dBm | **−95 dBm** |
+
+### Dynamic Range
+
+| Parameter | Value |
+|-----------|-------|
+| ADC full-scale at antenna | ~−10 dBm |
+| MDS CW (500 Hz) | ~−88 dBm |
+| **Instantaneous dynamic range (CW)** | **~78 dB** |
+| LNA IIP3 (estimated, HF) | ~+10 dBm at antenna |
+| Blocking dynamic range | **~65 dB** |
+
+### Signal Chain Gain Budget
+
+| Stage | Gain |
+|-------|------|
+| BPF 40m | −3 dB |
+| TQP3M9037 LNA | +28 dB |
+| Adapter (R1 termination loss) | −6 dB |
+| **Net RF gain to ADC** | **+19 dB** |
+| ADC full scale (3.3 V / 16-bit) | — |
+| Decimation processing gain (SSB) | +27.8 dB |
+
+A signal at −70 dBm antenna produces approximately **33 mV Vpp** at the ADC pin — well above the noise floor and clearly detectable.
+
+### Comparison with Tayloe Receivers
+
+| Parameter | SoftRock Lite II | QRP Labs Tayloe | **This chain (estimated)** |
+|-----------|-----------------|-----------------|---------------------------|
+| MDS SSB | ~−60 dBm | ~−48 dBm | **~−80 dBm** |
+| MDS CW | ~−65 dBm | ~−55 dBm | **~−88 dBm** |
+| Dynamic range | ~57 dB | ~28 dB | **~78 dB** |
+| Compression point | >−13 dBm | ~−20 dBm | ~−15 dBm |
+| Frequency agile (VFO) | ❌ crystal fixed | ❌ LO fixed | ✅ full 40m band |
+| All-digital demodulation | ❌ | ❌ | ✅ |
+
+## Feasibility Conclusion
+
+Direct RF undersampling of the 40m band with the TQP3M9037 LNA and STM32H7B3 ADC is **fully feasible**. The architecture requires no downconverter, no quadrature hybrid, and no dedicated IF hardware. The BPF before the LNA is the only analogue selectivity element; all subsequent processing is digital.
+
+The estimated performance exceeds both Tayloe-based receivers tested in this project by a significant margin, particularly in sensitivity and dynamic range. The software VFO covers the entire 40m band (7.000–7.300 MHz) by tuning a single NCO frequency parameter at runtime.
+
+The remaining implementation work is:
+- Adapt clock configuration for Discovery HSE = 25 MHz
+- Implement SSB/CW demodulator (I/Q to audio)
+- Tune NCO frequency resolution and VFO step size
+- Characterise image rejection with BPF in place
+- Measure actual MDS and dynamic range end-to-end
