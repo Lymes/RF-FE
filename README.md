@@ -665,3 +665,21 @@ The remaining implementation work is:
 - Tune NCO frequency resolution and VFO step size
 - Characterise image rejection with BPF in place
 - Measure actual MDS and dynamic range end-to-end
+
+---
+
+## Bottom Line
+
+For the cost of a **€13 LNA module** and a **STM32H7B3I-DK Discovery board**, it is possible to build an HF SDR receiver with performance characteristics that are competitive with — and in several respects superior to — commercial SDR receivers currently on the market:
+
+| Parameter | This design (estimated) | Typical entry-level SDR dongle | Typical mid-range SDR (e.g. SDRplay RSP1A) |
+|-----------|------------------------|-------------------------------|---------------------------------------------|
+| MDS CW | ~−88 dBm | ~−120 dBm (but high noise floor in practice) | ~−130 dBm |
+| Dynamic range | ~78 dB | ~50–60 dB | ~80–90 dB |
+| ADC resolution | 16-bit | 8-bit | 12-bit |
+| Architecture | Direct sampling, no mixer | Direct sampling | Direct sampling |
+| VFO | Full band, software | Full band, software | Full band, software |
+| HF coverage | Relay BPF bank | Broadband (worse selectivity) | Broadband |
+| **Total RF hardware cost** | **~€13** | €20–40 | €100–200 |
+
+The key advantage of this approach is the **16-bit ADC** of the STM32H7B3, which provides significantly more dynamic range than the 8-bit or 12-bit converters found in most SDR dongles and many mid-range receivers. Combined with the relay-switched BPF bank for image rejection, the result is a clean, selective, low-noise receiver built almost entirely from a microcontroller development board and a cheap broadband LNA module.
